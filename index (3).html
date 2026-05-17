@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>QuoteRight — Stop quoting from gut. Quote from data.</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #eab308;
+    --gold-dim: rgba(234, 179, 8, 0.08);
+    --gold-border: rgba(234, 179, 8, 0.25);
+    --gold-glow: rgba(234, 179, 8, 0.12);
+    --amber: #f59e0b;
+    --amber-bg: rgba(245, 158, 11, 0.12);
+    --amber-border: rgba(245, 158, 11, 0.35);
+    --bg: #0a0a0f;
+    --surface: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f0f0;
+    --text-muted: rgba(240,240,240,0.45);
+    --text-dim: rgba(240,240,240,0.65);
+    --radius: 16px;
+    --radius-lg: 20px;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 400;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 25% 60%, rgba(234,179,8,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 25%, rgba(234,179,8,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app-wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px 120px;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 0 20px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease 0.05s forwards;
+  }
+
+  .logo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .logo-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: -0.3px;
+    line-height: 1;
+  }
+
+  .logo-tag {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .currency-bar {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+  }
+
+  .currency-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 7px;
+    transition: all 0.2s;
+  }
+
+  .currency-btn.active {
+    background: rgba(234,179,8,0.15);
+    color: var(--gold);
+    border: 1px solid var(--gold-border);
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease 0.15s forwards;
+  }
+
+  @media(min-width: 600px) {
+    .stats-bar { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .stat-card {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* BIAS WARNING */
+  .bias-warning {
+    display: none;
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--amber);
+    animation: pulse 2.5s ease-in-out 0.5s 2;
+  }
+
+  .bias-warning.show { display: flex; align-items: center; gap: 10px; }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+    50% { box-shadow: 0 0 0 6px rgba(245,158,11,0.12); }
+  }
+
+  /* MAIN LAYOUT */
+  .main-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  @media(min-width: 900px) {
+    .main-grid {
+      display: grid;
+      grid-template-columns: 55fr 45fr;
+      gap: 16px;
+      align-items: start;
+    }
+  }
+
+  /* CARD */
+  .card {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  .card-header {
+    padding: 18px 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .card-body { padding: 16px 20px 20px; }
+
+  /* FORM ELEMENTS */
+  .form-group { margin-bottom: 14px; }
+  .form-group:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 400;
+    padding: 10px 13px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px rgba(234,179,8,0.12);
+  }
+
+  input::placeholder, textarea::placeholder { color: var(--text-muted); }
+  textarea { resize: none; min-height: 70px; }
+
+  select option { background: #1a1a24; color: var(--text); }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .segment-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .seg-btn {
+    flex: 1;
+    min-width: 0;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .seg-btn.active {
+    background: rgba(234,179,8,0.12);
+    border-color: var(--gold-border);
+    color: var(--gold);
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 11px 20px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-gold {
+    background: var(--gold);
+    color: #0a0a0f;
+  }
+
+  .btn-gold:hover { background: #f1bf0a; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(234,179,8,0.25); }
+
+  .btn-ghost {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .btn-ghost:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+
+  .btn-danger {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: rgba(239,68,68,0.8);
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+  .btn-sm { font-size: 12px; padding: 7px 13px; }
+
+  .btn-full { width: 100%; }
+
+  /* QUOTE GENERATOR */
+  .quote-generator {
+    opacity: 0;
+    animation: fadeUp 0.5s ease 0.25s forwards;
+  }
+
+  /* QUOTE OUTPUT */
+  .quote-output {
+    display: none;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    background: rgba(234,179,8,0.08);
+    border: 1px solid var(--gold-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 0 40px rgba(234,179,8,0.1);
+    padding: 20px;
+    margin-top: 14px;
+    opacity: 0;
+    transform: scale(0.97);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .quote-output.show {
+    display: block;
+    animation: fadeScale 0.35s ease forwards;
+  }
+
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .quote-range-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+  }
+
+  .quote-range {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .quote-target-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(234,179,8,0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 4px;
+  }
+
+  .quote-target {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 14px;
+  }
+
+  .quote-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(234,179,8,0.1);
+  }
+
+  .calibration-notice {
+    font-size: 11px;
+    color: var(--amber);
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+  }
+
+  /* COPY BUTTON */
+  .copy-btn-wrap { display: flex; justify-content: flex-end; }
+
+  /* HISTORY */
+  .history-section {
+    opacity: 0;
+    animation: fadeUp 0.5s ease 0.35s forwards;
+  }
+
+  .history-count {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+
+  .project-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 20px 20px;
+    max-height: 520px;
+    overflow-y: auto;
+  }
+
+  @media(min-width: 900px) {
+    .project-list { max-height: 520px; }
+  }
+
+  .project-list::-webkit-scrollbar { width: 4px; }
+  .project-list::-webkit-scrollbar-track { background: transparent; }
+  .project-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+  .project-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 15px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: default;
+  }
+
+  .project-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .project-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+
+  .project-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .project-type-tag {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gold);
+    background: rgba(234,179,8,0.08);
+    border: 1px solid rgba(234,179,8,0.15);
+    border-radius: 6px;
+    padding: 2px 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .project-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .pstat { display: flex; flex-direction: column; gap: 2px; }
+  .pstat-label { font-size: 9px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .pstat-value { font-size: 13px; font-weight: 500; color: var(--text-dim); }
+  .pstat-value.earned { color: var(--gold); font-weight: 600; }
+
+  .project-bias-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+  }
+
+  .project-bias-badge.over { background: rgba(239,68,68,0.1); color: rgba(239,68,68,0.8); }
+  .project-bias-badge.under { background: rgba(34,197,94,0.1); color: rgba(34,197,94,0.8); }
+
+  .project-card-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .project-notes {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 8px;
+    font-style: italic;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-state-icon { font-size: 32px; margin-bottom: 10px; }
+  .empty-state-text { font-size: 13px; line-height: 1.6; }
+
+  /* FAB */
+  .fab {
+    position: fixed;
+    bottom: 28px;
+    right: 20px;
+    z-index: 100;
+    background: var(--gold);
+    color: #0a0a0f;
+    border: none;
+    border-radius: 28px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 14px 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    box-shadow: 0 8px 30px rgba(234,179,8,0.3);
+    transition: all 0.2s;
+  }
+
+  .fab:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(234,179,8,0.4); background: #f1bf0a; }
+  .fab:active { transform: translateY(0); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+  }
+
+  @media(min-width: 600px) {
+    .modal-overlay {
+      align-items: center;
+      padding: 20px;
+    }
+  }
+
+  .modal-overlay.show { display: flex; animation: overlayIn 0.2s ease; }
+
+  @keyframes overlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .modal {
+    background: #111118;
+    border: 1px solid var(--border);
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 32px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @media(min-width: 600px) {
+    .modal {
+      border-radius: 24px;
+      max-height: 85vh;
+    }
+  }
+
+  .modal::-webkit-scrollbar { width: 4px; }
+  .modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+  @keyframes modalUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .modal-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .modal-close {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px 10px;
+    transition: all 0.2s;
+  }
+
+  .modal-close:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+
+  .modal-footer {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .custom-type-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .custom-type-row input { flex: 1; }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 14px 0;
+  }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+
+  /* Type rate breakdown */
+  .type-rates {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .type-rate-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .type-rate-name { color: var(--text-dim); }
+  .type-rate-val { color: var(--gold); font-weight: 600; font-family: var(--font-display); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="app-wrap">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-name">QuoteRight</div>
+      <div class="logo-tag">Stop quoting from gut. Quote from data.</div>
+    </div>
+    <div class="currency-bar" id="currencyBar">
+      <button class="currency-btn" data-cur="$">$</button>
+      <button class="currency-btn" data-cur="£">£</button>
+      <button class="currency-btn" data-cur="€">€</button>
+      <button class="currency-btn" data-cur="₹">₹</button>
+    </div>
+  </header>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-card">
+      <div class="stat-label">Actual Rate</div>
+      <div class="stat-value" id="statRate">—</div>
+      <div class="stat-sub">per hour</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Optimism Bias</div>
+      <div class="stat-value" id="statBias" style="color:var(--text-muted)">—</div>
+      <div class="stat-sub" id="statBiasSub">underestimate</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Projects Logged</div>
+      <div class="stat-value" id="statCount" style="color:var(--text)">0</div>
+      <div class="stat-sub">in history</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Top Type Rate</div>
+      <div class="stat-value" id="statTopType">—</div>
+      <div class="stat-sub" id="statTopTypeName">no data</div>
+    </div>
+  </div>
+
+  <!-- BIAS WARNING -->
+  <div class="bias-warning" id="biasWarning">
+    <span>⚠</span>
+    <span id="biasWarningText">You're underestimating significantly on average. This quote already adjusts for that — don't second-guess it.</span>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- QUOTE GENERATOR -->
+    <div class="quote-generator">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Quote Generator</div>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <label>Project Type</label>
+            <select id="qType"></select>
+          </div>
+
+          <div class="form-group">
+            <label>Your Estimated Hours</label>
+            <input type="number" id="qHours" placeholder="e.g. 20" min="0.5" step="0.5">
+          </div>
+
+          <div class="form-group">
+            <label>Complexity</label>
+            <div class="segment-group" id="complexityGroup">
+              <button class="seg-btn active" data-val="1.0">Low</button>
+              <button class="seg-btn" data-val="1.15">Medium</button>
+              <button class="seg-btn" data-val="1.3">High</button>
+              <button class="seg-btn" data-val="1.5">Nightmare</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Revision Rounds Expected</label>
+            <div class="segment-group" id="revisionGroup">
+              <button class="seg-btn active" data-val="1.0">0</button>
+              <button class="seg-btn" data-val="1.1">1</button>
+              <button class="seg-btn" data-val="1.2">2</button>
+              <button class="seg-btn" data-val="1.35">3+</button>
+            </div>
+          </div>
+
+          <button class="btn btn-gold btn-full" id="generateBtn">Generate Quote</button>
+
+          <!-- QUOTE OUTPUT -->
+          <div class="quote-output" id="quoteOutput">
+            <div id="calibrationNotice" class="calibration-notice" style="display:none;">
+              ⚡ Add more project history for a fully calibrated quote. Showing estimate based on inputs only.
+            </div>
+            <div class="quote-range-label">Quote Range</div>
+            <div class="quote-range" id="quoteRange">—</div>
+            <div class="quote-target-label">Recommended Quote</div>
+            <div class="quote-target" id="quoteTarget">—</div>
+            <div class="quote-meta" id="quoteMeta"></div>
+            <div class="copy-btn-wrap">
+              <button class="btn btn-ghost btn-sm" id="copyBtn">
+                <span id="copyIcon">⎘</span> <span id="copyText">Copy Quote</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TYPE RATES (desktop: inside left col) -->
+      <div class="card" style="margin-top:14px;" id="typeRatesCard">
+        <div class="card-header">
+          <div class="card-title">Rate by Project Type</div>
+        </div>
+        <div class="card-body">
+          <div class="type-rates" id="typeRatesList">
+            <div style="color:var(--text-muted);font-size:12px;">Log projects to see per-type rates.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECT HISTORY -->
+    <div class="history-section">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Project History</div>
+          <div class="history-count" id="historyCount">0 projects</div>
+        </div>
+        <div class="project-list" id="projectList">
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <div class="empty-state-text">No projects logged yet.<br>Tap + Log Project to start.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fabBtn">
+  <span>+</span> Log Project
+</button>
+
+<!-- LOG PROJECT MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Log a Project</div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+
+    <input type="hidden" id="editId">
+
+    <div class="form-group">
+      <label>Project Name</label>
+      <input type="text" id="mName" placeholder="e.g. Website Redesign — Acme Co.">
+    </div>
+
+    <div class="form-group">
+      <label>Project Type</label>
+      <select id="mType"></select>
+      <div class="custom-type-row">
+        <input type="text" id="mCustomType" placeholder="Or add a new type…" style="margin-top:6px;">
+        <button class="btn btn-ghost btn-sm" id="addCustomTypeBtn" style="margin-top:6px;white-space:nowrap;">Add</button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Estimated Hours</label>
+        <input type="number" id="mEstHours" placeholder="20" min="0.1" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>Actual Hours</label>
+        <input type="number" id="mActHours" placeholder="28" min="0.1" step="0.1">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Amount Earned (<span class="cur-sym">$</span>)</label>
+        <input type="number" id="mEarned" placeholder="2500" min="0" step="1">
+      </div>
+      <div class="form-group">
+        <label>Completion Date</label>
+        <input type="date" id="mDate">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <textarea id="mNotes" placeholder="Client scope creep, complex revisions…"></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="cancelBtn" style="flex:1">Cancel</button>
+      <button class="btn btn-gold" id="saveBtn" style="flex:2">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const DEFAULT_TYPES = ['Design','Development','Writing','Consulting','Accounting','Research','Other'];
+const FALLBACK_RATE = 50; // used when no history
+
+let state = {
+  projects: [],
+  currency: '$',
+  customTypes: []
+};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('quoteright_data');
+    if (raw) state = JSON.parse(raw);
+  } catch(e) { /* fresh state */ }
+}
+
+function saveState() {
+  localStorage.setItem('quoteright_data', JSON.stringify(state));
+}
+
+// ─── CURRENCY ─────────────────────────────────────────────────────────────────
+function setCurrency(cur) {
+  state.currency = cur;
+  saveState();
+  document.querySelectorAll('.cur-sym').forEach(el => el.textContent = cur);
+  document.querySelectorAll('.currency-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.cur === cur);
+  });
+  updateStats();
+  clearQuoteOutput();
+}
+
+// ─── TYPES ────────────────────────────────────────────────────────────────────
+function allTypes() {
+  return [...DEFAULT_TYPES, ...state.customTypes.filter(t => !DEFAULT_TYPES.includes(t))];
+}
+
+function populateTypeDropdowns() {
+  const types = allTypes();
+  [document.getElementById('qType'), document.getElementById('mType')].forEach(sel => {
+    if (!sel) return;
+    const curr = sel.value;
+    sel.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+    if (curr && types.includes(curr)) sel.value = curr;
+  });
+}
+
+// ─── STATS COMPUTATION ───────────────────────────────────────────────────────
+function computeStats() {
+  const p = state.projects;
+  if (!p.length) return null;
+
+  const totalEarned = p.reduce((s, x) => s + x.earned, 0);
+  const totalActual = p.reduce((s, x) => s + x.actHours, 0);
+  const actualRate = totalActual > 0 ? totalEarned / totalActual : 0;
+
+  // optimism bias: avg of ((actual - est) / est) * 100
+  const biases = p
+    .filter(x => x.estHours > 0)
+    .map(x => ((x.actHours - x.estHours) / x.estHours) * 100);
+  const optimismBias = biases.length ? biases.reduce((a,b) => a+b, 0) / biases.length : 0;
+
+  // per-type rates
+  const typeMap = {};
+  p.forEach(proj => {
+    if (!typeMap[proj.type]) typeMap[proj.type] = { earned: 0, hours: 0 };
+    typeMap[proj.type].earned += proj.earned;
+    typeMap[proj.type].hours += proj.actHours;
+  });
+
+  const typeRates = {};
+  Object.entries(typeMap).forEach(([type, d]) => {
+    typeRates[type] = d.hours > 0 ? d.earned / d.hours : 0;
+  });
+
+  // top type
+  let topType = null, topRate = 0;
+  Object.entries(typeRates).forEach(([type, rate]) => {
+    if (rate > topRate) { topRate = rate; topType = type; }
+  });
+
+  return { actualRate, optimismBias, typeRates, topType, topRate, count: p.length };
+}
+
+// ─── COUNT-UP ─────────────────────────────────────────────────────────────────
+function countUp(el, target, prefix='', suffix='', decimals=0, duration=700) {
+  const start = performance.now();
+  const startVal = parseFloat(el.dataset.val || 0) || 0;
+  function tick(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    const val = startVal + (target - startVal) * ease;
+    el.textContent = prefix + val.toFixed(decimals) + suffix;
+    if (t < 1) requestAnimationFrame(tick);
+    else { el.textContent = prefix + target.toFixed(decimals) + suffix; el.dataset.val = target; }
+  }
+  requestAnimationFrame(tick);
+}
+
+// ─── UPDATE STATS PANEL ───────────────────────────────────────────────────────
+function updateStats() {
+  const stats = computeStats();
+  const cur = state.currency;
+  const rateEl = document.getElementById('statRate');
+  const biasEl = document.getElementById('statBias');
+  const biasSubEl = document.getElementById('statBiasSub');
+  const countEl = document.getElementById('statCount');
+  const topTypeEl = document.getElementById('statTopType');
+  const topTypeNameEl = document.getElementById('statTopTypeName');
+  const biasWarning = document.getElementById('biasWarning');
+  const biasWarningText = document.getElementById('biasWarningText');
+
+  if (!stats) {
+    rateEl.textContent = '—';
+    biasEl.textContent = '—';
+    biasEl.style.color = 'var(--text-muted)';
+    countEl.textContent = '0';
+    topTypeEl.textContent = '—';
+    topTypeNameEl.textContent = 'no data';
+    biasWarning.classList.remove('show');
+    updateTypeRates(null);
+    return;
+  }
+
+  // Rate
+  rateEl.style.color = 'var(--gold)';
+  countUp(rateEl, stats.actualRate, cur, '/hr', 2);
+
+  // Bias
+  const bias = stats.optimismBias;
+  if (bias > 0) {
+    biasEl.style.color = 'rgba(239,68,68,0.85)';
+    countUp(biasEl, bias, '+', '%', 1);
+    biasSubEl.textContent = 'underestimate avg';
+  } else if (bias < 0) {
+    biasEl.style.color = 'rgba(34,197,94,0.85)';
+    countUp(biasEl, Math.abs(bias), '-', '%', 1);
+    biasSubEl.textContent = 'overestimate avg';
+  } else {
+    biasEl.textContent = '0%';
+    biasEl.style.color = 'var(--text-dim)';
+    biasSubEl.textContent = 'perfect estimate';
+  }
+
+  // Count
+  countEl.style.color = 'var(--text)';
+  countUp(countEl, stats.count, '', '', 0);
+
+  // Top type
+  if (stats.topType) {
+    topTypeEl.style.color = 'var(--gold)';
+    countUp(topTypeEl, stats.topRate, cur, '/hr', 2);
+    topTypeNameEl.textContent = stats.topType;
+  } else {
+    topTypeEl.textContent = '—';
+    topTypeNameEl.textContent = 'no data';
+  }
+
+  // Bias warning
+  if (bias > 20) {
+    biasWarning.classList.add('show');
+    biasWarningText.textContent = `You're underestimating by ${bias.toFixed(1)}% on average. This quote already adjusts for that — don't second-guess it.`;
+  } else {
+    biasWarning.classList.remove('show');
+  }
+
+  updateTypeRates(stats.typeRates);
+  document.getElementById('historyCount').textContent = `${stats.count} project${stats.count !== 1 ? 's' : ''}`;
+}
+
+function updateTypeRates(typeRates) {
+  const container = document.getElementById('typeRatesList');
+  const cur = state.currency;
+  if (!typeRates || !Object.keys(typeRates).length) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">Log projects to see per-type rates.</div>';
+    return;
+  }
+  const sorted = Object.entries(typeRates).sort((a,b) => b[1] - a[1]);
+  container.innerHTML = sorted.map(([type, rate]) =>
+    `<div class="type-rate-row">
+      <span class="type-rate-name">${type}</span>
+      <span class="type-rate-val">${cur}${rate.toFixed(2)}/hr</span>
+    </div>`
+  ).join('');
+}
+
+// ─── QUOTE GENERATOR ─────────────────────────────────────────────────────────
+let complexityMult = 1.0;
+let revisionMult = 1.0;
+
+function setupSegmentGroups() {
+  document.getElementById('complexityGroup').addEventListener('click', e => {
+    if (!e.target.classList.contains('seg-btn')) return;
+    document.querySelectorAll('#complexityGroup .seg-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    complexityMult = parseFloat(e.target.dataset.val);
+  });
+
+  document.getElementById('revisionGroup').addEventListener('click', e => {
+    if (!e.target.classList.contains('seg-btn')) return;
+    document.querySelectorAll('#revisionGroup .seg-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    revisionMult = parseFloat(e.target.dataset.val);
+  });
+}
+
+function generateQuote() {
+  const type = document.getElementById('qType').value;
+  const estHours = parseFloat(document.getElementById('qHours').value);
+  const cur = state.currency;
+
+  if (!estHours || estHours <= 0) {
+    alert('Please enter your estimated hours.');
+    return;
+  }
+
+  const stats = computeStats();
+  const count = stats ? stats.count : 0;
+  const calibrated = count >= 3;
+
+  let hourlyRate, correctedHours, biasNote = '';
+  const noticeEl = document.getElementById('calibrationNotice');
+
+  if (calibrated) {
+    // Use type-specific rate if available, else overall
+    const typeRate = stats.typeRates[type];
+    hourlyRate = typeRate || stats.actualRate;
+    const bias = stats.optimismBias;
+    correctedHours = estHours * (1 + bias / 100);
+    if (bias > 0) biasNote = `Bias-corrected: ${estHours}h → ${correctedHours.toFixed(1)}h (+${bias.toFixed(1)}%)`;
+    noticeEl.style.display = 'none';
+  } else {
+    hourlyRate = FALLBACK_RATE;
+    correctedHours = estHours;
+    noticeEl.style.display = 'block';
+  }
+
+  const base = hourlyRate * correctedHours * complexityMult * revisionMult;
+  const floor = base * 0.9;
+  const ceiling = base * 1.2;
+
+  function fmt(n) {
+    return cur + Math.round(n).toLocaleString();
+  }
+
+  document.getElementById('quoteRange').textContent = `${fmt(floor)} – ${fmt(ceiling)}`;
+  document.getElementById('quoteTarget').textContent = fmt(base);
+
+  const metaLines = [
+    `Type: ${type}`,
+    `Est. hours: ${estHours}h${biasNote ? ` → ${correctedHours.toFixed(1)}h (bias-corrected)` : ''}`,
+    `Rate used: ${cur}${hourlyRate.toFixed(2)}/hr · Complexity ×${complexityMult} · Revisions ×${revisionMult}`,
+    count >= 3 ? `Based on ${count} past projects` : `No calibration — add 3+ projects for personalized rates`
+  ].join('\n');
+
+  document.getElementById('quoteMeta').textContent = metaLines;
+
+  const outputEl = document.getElementById('quoteOutput');
+  outputEl.classList.remove('show');
+  void outputEl.offsetWidth;
+  outputEl.classList.add('show');
+}
+
+function clearQuoteOutput() {
+  document.getElementById('quoteOutput').classList.remove('show');
+}
+
+function setupCopyBtn() {
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    const stats = computeStats();
+    const cur = state.currency;
+    const target = document.getElementById('quoteTarget').textContent;
+    const range = document.getElementById('quoteRange').textContent;
+    const type = document.getElementById('qType').value;
+    const count = stats ? stats.count : 0;
+    const rate = stats ? `${cur}${stats.actualRate.toFixed(2)}/hr` : 'N/A';
+    const date = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+
+    const text = `QuoteRight Estimate — ${date}
+Project type: ${type}
+Recommended quote: ${target}
+Range: ${range}
+Based on ${count} past project${count !== 1 ? 's' : ''} · Your actual rate: ${rate}`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      const icon = document.getElementById('copyIcon');
+      const label = document.getElementById('copyText');
+      icon.textContent = '✓';
+      label.textContent = 'Copied!';
+      setTimeout(() => { icon.textContent = '⎘'; label.textContent = 'Copy Quote'; }, 2000);
+    });
+  });
+}
+
+// ─── PROJECT LIST ─────────────────────────────────────────────────────────────
+function renderProjects() {
+  const list = document.getElementById('projectList');
+  const cur = state.currency;
+
+  if (!state.projects.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📋</div>
+      <div class="empty-state-text">No projects logged yet.<br>Tap + Log Project to start.</div>
+    </div>`;
+    return;
+  }
+
+  const sorted = [...state.projects].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  list.innerHTML = sorted.map(p => {
+    const effRate = p.actHours > 0 ? (p.earned / p.actHours).toFixed(2) : '—';
+    const biasPct = p.estHours > 0
+      ? (((p.actHours - p.estHours) / p.estHours) * 100).toFixed(1)
+      : null;
+    const biasLabel = biasPct
+      ? (parseFloat(biasPct) >= 0
+          ? `+${biasPct}% over estimate`
+          : `${biasPct}% under estimate`)
+      : '';
+    const biasCls = biasPct && parseFloat(biasPct) > 0 ? 'over' : 'under';
+    const dateStr = p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+
+    return `<div class="project-card" data-id="${p.id}">
+      <div class="project-card-top">
+        <div class="project-name">${escHtml(p.name)}</div>
+        <div class="project-type-tag">${escHtml(p.type)}</div>
+      </div>
+      <div class="project-stats">
+        <div class="pstat">
+          <div class="pstat-label">Earned</div>
+          <div class="pstat-value earned">${cur}${p.earned.toLocaleString()}</div>
+        </div>
+        <div class="pstat">
+          <div class="pstat-label">Hours (est/act)</div>
+          <div class="pstat-value">${p.estHours}h / ${p.actHours}h</div>
+        </div>
+        <div class="pstat">
+          <div class="pstat-label">Eff. Rate</div>
+          <div class="pstat-value">${cur}${effRate}/hr</div>
+        </div>
+      </div>
+      ${biasPct ? `<div class="project-bias-badge ${biasCls}">${biasLabel}</div>` : ''}
+      ${p.notes ? `<div class="project-notes">${escHtml(p.notes)}</div>` : ''}
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;">${dateStr}</div>
+      <div class="project-card-actions">
+        <button class="btn btn-ghost btn-sm edit-btn" data-id="${p.id}">Edit</button>
+        <button class="btn btn-danger delete-btn" data-id="${p.id}">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Delete
+  list.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (confirm('Delete this project? This cannot be undone.')) {
+        state.projects = state.projects.filter(p => p.id !== btn.dataset.id);
+        saveState();
+        renderProjects();
+        updateStats();
+        populateTypeDropdowns();
+      }
+    });
+  });
+
+  // Edit
+  list.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const proj = state.projects.find(p => p.id === btn.dataset.id);
+      if (!proj) return;
+      openModal(proj);
+    });
+  });
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────────────────
+function openModal(editProj = null) {
+  document.getElementById('modalTitle').textContent = editProj ? 'Edit Project' : 'Log a Project';
+  document.getElementById('editId').value = editProj ? editProj.id : '';
+  document.getElementById('mName').value = editProj ? editProj.name : '';
+  document.getElementById('mEstHours').value = editProj ? editProj.estHours : '';
+  document.getElementById('mActHours').value = editProj ? editProj.actHours : '';
+  document.getElementById('mEarned').value = editProj ? editProj.earned : '';
+  document.getElementById('mDate').value = editProj ? editProj.date : new Date().toISOString().split('T')[0];
+  document.getElementById('mNotes').value = editProj ? (editProj.notes || '') : '';
+  document.getElementById('mCustomType').value = '';
+
+  populateTypeDropdowns();
+  if (editProj) document.getElementById('mType').value = editProj.type;
+
+  document.getElementById('modalOverlay').classList.add('show');
+  document.getElementById('mName').focus();
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function saveProject() {
+  const name = document.getElementById('mName').value.trim();
+  const type = document.getElementById('mType').value;
+  const estHours = parseFloat(document.getElementById('mEstHours').value);
+  const actHours = parseFloat(document.getElementById('mActHours').value);
+  const earned = parseFloat(document.getElementById('mEarned').value);
+  const date = document.getElementById('mDate').value;
+  const notes = document.getElementById('mNotes').value.trim();
+
+  if (!name) { alert('Project name is required.'); return; }
+  if (!estHours || estHours <= 0) { alert('Estimated hours required.'); return; }
+  if (!actHours || actHours <= 0) { alert('Actual hours required.'); return; }
+  if (isNaN(earned) || earned < 0) { alert('Amount earned required.'); return; }
+  if (!date) { alert('Completion date required.'); return; }
+
+  const editId = document.getElementById('editId').value;
+
+  if (editId) {
+    const idx = state.projects.findIndex(p => p.id === editId);
+    if (idx >= 0) {
+      state.projects[idx] = { id: editId, name, type, estHours, actHours, earned, date, notes };
+    }
+  } else {
+    state.projects.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      name, type, estHours, actHours, earned, date, notes
+    });
+  }
+
+  saveState();
+  closeModal();
+  renderProjects();
+  updateStats();
+  populateTypeDropdowns();
+}
+
+function setupModal() {
+  document.getElementById('fabBtn').addEventListener('click', () => openModal());
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  document.getElementById('cancelBtn').addEventListener('click', closeModal);
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  });
+  document.getElementById('saveBtn').addEventListener('click', saveProject);
+
+  document.getElementById('addCustomTypeBtn').addEventListener('click', () => {
+    const val = document.getElementById('mCustomType').value.trim();
+    if (!val) return;
+    if (!state.customTypes.includes(val) && !DEFAULT_TYPES.includes(val)) {
+      state.customTypes.push(val);
+      saveState();
+    }
+    populateTypeDropdowns();
+    document.getElementById('mType').value = val;
+    document.getElementById('mCustomType').value = '';
+  });
+
+  // Allow Enter in custom type input
+  document.getElementById('mCustomType').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('addCustomTypeBtn').click();
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  loadState();
+  setCurrency(state.currency);
+  populateTypeDropdowns();
+  setupSegmentGroups();
+  setupModal();
+  setupCopyBtn();
+  renderProjects();
+  updateStats();
+
+  document.getElementById('generateBtn').addEventListener('click', generateQuote);
+
+  document.getElementById('currencyBar').addEventListener('click', e => {
+    if (e.target.classList.contains('currency-btn')) setCurrency(e.target.dataset.cur);
+  });
+
+  document.getElementById('historyCount').textContent =
+    `${state.projects.length} project${state.projects.length !== 1 ? 's' : ''}`;
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
