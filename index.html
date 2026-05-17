@@ -431,6 +431,7 @@
     margin-bottom: 14px;
     padding-top: 12px;
     border-top: 1px solid rgba(234,179,8,0.1);
+    white-space: pre-wrap;
   }
 
   .calibration-notice {
@@ -877,7 +878,7 @@
 </div>
 
 <!-- FAB -->
-<button class="fab" id="fabBtn">
+<button class="fab" id="fabBtn" aria-label="Log Project">
   <span>+</span> Log Project
 </button>
 
@@ -886,7 +887,7 @@
   <div class="modal" id="modal">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">Log a Project</div>
-      <button class="modal-close" id="modalClose">✕</button>
+      <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
     </div>
 
     <input type="hidden" id="editId">
@@ -943,6 +944,7 @@
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const DEFAULT_TYPES = ['Design','Development','Writing','Consulting','Accounting','Research','Other'];
 const FALLBACK_RATE = 50; // used when no history
+const activeAnimations = new WeakMap();
 
 let state = {
   projects: [],
@@ -953,7 +955,14 @@ let state = {
 function loadState() {
   try {
     const raw = localStorage.getItem('quoteright_data');
-    if (raw) state = JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      state = {
+        projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+        currency: typeof parsed.currency === 'string' ? parsed.currency : '$',
+        customTypes: Array.isArray(parsed.customTypes) ? parsed.customTypes : []
+      };
+    }
   } catch(e) { /* fresh state */ }
 }
 
@@ -970,12 +979,15 @@ function setCurrency(cur) {
     btn.classList.toggle('active', btn.dataset.cur === cur);
   });
   updateStats();
+  renderProjects();
   clearQuoteOutput();
 }
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 function allTypes() {
-  return [...DEFAULT_TYPES, ...state.customTypes.filter(t => !DEFAULT_TYPES.includes(t))];
+  const set = new Set([...DEFAULT_TYPES, ...state.customTypes]);
+  state.projects.forEach(p => set.add(p.type));
+  return [...set];
 }
 
 function populateTypeDropdowns() {
@@ -983,7 +995,7 @@ function populateTypeDropdowns() {
   [document.getElementById('qType'), document.getElementById('mType')].forEach(sel => {
     if (!sel) return;
     const curr = sel.value;
-    sel.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+    sel.innerHTML = types.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
     if (curr && types.includes(curr)) sel.value = curr;
   });
 }
@@ -1027,6 +1039,7 @@ function computeStats() {
 
 // ─── COUNT-UP ─────────────────────────────────────────────────────────────────
 function countUp(el, target, prefix='', suffix='', decimals=0, duration=700) {
+  if (activeAnimations.has(el)) cancelAnimationFrame(activeAnimations.get(el));
   const start = performance.now();
   const startVal = parseFloat(el.dataset.val || 0) || 0;
   function tick(now) {
@@ -1034,10 +1047,17 @@ function countUp(el, target, prefix='', suffix='', decimals=0, duration=700) {
     const ease = 1 - Math.pow(1 - t, 3);
     const val = startVal + (target - startVal) * ease;
     el.textContent = prefix + val.toFixed(decimals) + suffix;
-    if (t < 1) requestAnimationFrame(tick);
-    else { el.textContent = prefix + target.toFixed(decimals) + suffix; el.dataset.val = target; }
+    if (t < 1) {
+      const rid = requestAnimationFrame(tick);
+      activeAnimations.set(el, rid);
+    } else {
+      el.textContent = prefix + target.toFixed(decimals) + suffix;
+      el.dataset.val = target;
+      activeAnimations.delete(el);
+    }
   }
-  requestAnimationFrame(tick);
+  const rid = requestAnimationFrame(tick);
+  activeAnimations.set(el, rid);
 }
 
 // ─── UPDATE STATS PANEL ───────────────────────────────────────────────────────
@@ -1055,10 +1075,14 @@ function updateStats() {
 
   if (!stats) {
     rateEl.textContent = '—';
+    rateEl.style.color = 'var(--text-muted)';
     biasEl.textContent = '—';
     biasEl.style.color = 'var(--text-muted)';
+    biasSubEl.textContent = 'underestimate';
     countEl.textContent = '0';
+    countEl.style.color = 'var(--text-muted)';
     topTypeEl.textContent = '—';
+    topTypeEl.style.color = 'var(--text-muted)';
     topTypeNameEl.textContent = 'no data';
     biasWarning.classList.remove('show');
     updateTypeRates(null);
@@ -1121,7 +1145,7 @@ function updateTypeRates(typeRates) {
   const sorted = Object.entries(typeRates).sort((a,b) => b[1] - a[1]);
   container.innerHTML = sorted.map(([type, rate]) =>
     `<div class="type-rate-row">
-      <span class="type-rate-name">${type}</span>
+      <span class="type-rate-name">${escHtml(type)}</span>
       <span class="type-rate-val">${cur}${rate.toFixed(2)}/hr</span>
     </div>`
   ).join('');
@@ -1170,7 +1194,10 @@ function generateQuote() {
     hourlyRate = typeRate || stats.actualRate;
     const bias = stats.optimismBias;
     correctedHours = estHours * (1 + bias / 100);
-    if (bias > 0) biasNote = `Bias-corrected: ${estHours}h → ${correctedHours.toFixed(1)}h (+${bias.toFixed(1)}%)`;
+    if (Math.abs(bias) > 0.01) {
+      const sign = bias > 0 ? '+' : '';
+      biasNote = `Bias-corrected: ${estHours}h → ${correctedHours.toFixed(1)}h (${sign}${bias.toFixed(1)}%)`;
+    }
     noticeEl.style.display = 'none';
   } else {
     hourlyRate = FALLBACK_RATE;
@@ -1329,7 +1356,8 @@ function openModal(editProj = null) {
   document.getElementById('mEstHours').value = editProj ? editProj.estHours : '';
   document.getElementById('mActHours').value = editProj ? editProj.actHours : '';
   document.getElementById('mEarned').value = editProj ? editProj.earned : '';
-  document.getElementById('mDate').value = editProj ? editProj.date : new Date().toISOString().split('T')[0];
+  const localDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  document.getElementById('mDate').value = editProj ? editProj.date : localDate;
   document.getElementById('mNotes').value = editProj ? (editProj.notes || '') : '';
   document.getElementById('mCustomType').value = '';
 
