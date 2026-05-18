@@ -1,5 +1,6 @@
 # QuoteRight
 > Stop quoting from gut. Quote from data.
+## ![image alt](https://github.com/asap-tester/QuoteRight/blob/702ae6e85f5dc85965a00222911a7d0120a26650/101.jpg)
 
 ## The Problem
 Freelancers consistently undercharge — not from lack of confidence, but from lack of calibration data. Every new quote is an optimistic guess. There is no tool that uses your own project history to tell you what to charge next.
